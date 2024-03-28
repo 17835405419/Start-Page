@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>搜索框示例</title>
+  <style>
+    * {
+      padding: 0;
+      margin: 0;
+      list-style: none;
+    }
+
+    body {
+      height: 100vh;
+      width: 100vw;
+      box-sizing: border-box;
+      /* background-image: url("./static/bg/0.jpg"); */
+      background-size: cover;
+    }
+
+    .main-container {
+      display: flex;
+      flex-direction: column;
+      opacity: 1;
+      /* 初始不透明度 */
+      transition: opacity 1s ease-out;
+    }
+
+    .fade-out {
+      opacity: 0.3;
+      /* 鼠标不移动后的目标不透明度 */
+    }
+
+    /* 时钟样式 */
+    #clock {
+      font-size: 55px;
+      font-weight: 550;
+      text-align: center;
+      margin: 18vh 0 4.5vh 0;
+      /* 文字随背景改变颜色 */
+      mix-blend-mode: difference;
+      color: #fff;
+    }
+
+    /* 搜索框样式 */
+    .search-container {
+      width: 50vw;
+      min-height: 6vh;
+      border-radius: 15px;
+      display: flex;
+      margin: 0 auto;
+      box-shadow: 0 1px 3px 0.2px #ee74e1;
+    }
+
+    .search-container input {
+      min-height: 6vh;
+      width: 80%;
+      border: none;
+      outline: none;
+      font-size: 16px;
+    }
+
+    .search-container::before {
+      content: "";
+      display: inline-block;
+      background-image: url("./static/icon/百度.png");
+      background-size: 20px 20px;
+      background-repeat: no-repeat;
+      background-position: center;
+      width: 3.6vw;
+      border-radius: 15px 0 0 15px;
+      background-color: #fff;
+    }
+
+    .search-container button {
+      min-height: 6vh;
+      width: 20%;
+      border: none;
+      border-radius: 0 15px 15px 0;
+      background-color: #3eecac;
+      background-image: linear-gradient(19deg, #3eecac 0%, #ee74e1 100%);
+      color: #fff;
+      font-size: 16px;
+    }
+
+    .search-container button:hover {
+      transition: 0.3s;
+      box-shadow: 2px 0 8px 0.1px #ee74e1;
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    /* 收藏网址栏 */
+
+    .collect-container {
+      width: 79.7vw;
+      height: 40vh;
+      margin: 5vh auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, 9vw);
+      grid-template-rows: repeat(2, 1fr);
+      justify-content: space-around;
+      align-items: center;
+    }
+
+    .collect-container .collect-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .collect-container .collect-item .collect-icon {
+      height: 4.3vw;
+      width: 4.3vw;
+      margin: 2vh;
+      border-radius: 10px;
+      box-shadow: 0 1px 3px 0.2px #ee74e1;
+    }
+
+    .collect-container .collect-item .collect-icon:hover {
+      cursor: pointer;
+      transform: translateY(-2px);
+    }
+
+    .collect-container .collect-item .collect-name {
+      font-size: 12px;
+      color: #fff;
+      mix-blend-mode: difference;
+    }
+
+    .collect-container .collect-item .collect-add_icon {
+      background: url("./static/icon/添加.png") rgba(255, 255, 255, 0.2);
+      background-repeat: no-repeat;
+      background-size: 50%;
+      background-position: center;
+    }
+
+    /* 右键菜单 */
+    .context-menu {
+      position: absolute;
+      background-color: #fff;
+      border: 1px solid #ccc;
+      display: none;
+      border-radius: 5px;
+      box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+      padding: 0.5vh 0;
+      font-size: 12px;
+    }
+
+    .context-menu ul li {
+      padding: 1vh 1vw;
+      cursor: pointer;
+    }
+
+    .context-menu ul li:hover {
+      background-color: #f0f0f0;
+    }
+
+    /* 模态框 */
+    .modal {
+      position: absolute;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.2);
+      display: none;
+    }
+
+    /* 添加书签界面 */
+    .collect-operate-container {
+      width: 40vw;
+      height: 60vh;
+      background-color: #fff;
+      border-radius: 15px;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      padding: 2vh 2vh 2vh 0;
+    }
+
+    .collect-operate-container .left {
+      flex: 1;
+      border-right: 1px solid #ddd;
+      padding: 2vh 0;
+    }
+
+    .collect-operate-container .left .select-item {
+      height: 8%;
+      background-color: #eee;
+      display: flex;
+      align-items: center;
+      margin: 1vh 0.5vw;
+      border-radius: 1vh;
+      background-color: rgba(181, 214, 233, 0.3);
+    }
+
+    .collect-operate-container .left .select-item:hover {
+      background-color: rgba(35, 159, 231, 0.5);
+      cursor: pointer;
+      transition: 0.4s;
+    }
+
+    /* 选中后的状态 */
+    .collect-operate-container .left .activited {
+      background-color: rgba(35, 159, 231, 0.5);
+    }
+
+    .collect-operate-container .left .select-item .icon {
+      padding: 0 0.5vw 0 0.3vw;
+      height: 70%;
+      flex: 0.5;
+    }
+
+    .collect-operate-container .left .select-item .title {
+      font-size: 14px;
+      flex: 3;
+    }
+
+    .collect-operate-container .right {
+      flex: 3;
+      padding: 2vh;
+    }
+
+    /* 控制页面显隐 */
+    .collect-operate-container .right .right—item {
+      display: none;
+    }
+
+    .collect-operate-container .right .title {
+      font-weight: 700;
+      padding-bottom: 1.8vh;
+    }
+
+    .collect-operate-container .right .form-item {
+      display: flex;
+      align-items: center;
+      padding: 1.5vh 0;
+    }
+
+    .collect-operate-container .right .form-item input {
+      /* 输入框样式 */
+      flex: 1;
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+    }
+
+    .collect-operate-container .right .form-item button {
+      /* 提交按钮样式 */
+      width: 100%;
+      padding: 1vh;
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+
+    .collect-operate-container .right .form-item button:hover {
+      /* 输入框样式 */
+      background-color: #45a049;
+      transition: 0.2s;
+    }
+
+    /* 背景图片 */
+    .collect-operate-container .right .img-container {
+      width: 100%;
+      height: 50vh;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      justify-content: space-around;
+      align-items: center;
+      gap: 1vh;
+      overflow-y: scroll;
+    }
+
+    .collect-operate-container .right .img-container .img {
+      width: 98%;
+      height: 18vh;
+    }
+
+    .collect-operate-container .right .img-container .img:hover {
+      cursor: pointer;
+      box-shadow: 1px 2px 5px 3px #bdbdc0;
+    }
+
+    /* 小说设置 */
+    .collect-operate-container .right .settings-section {
+      margin: 3vh 0;
+      padding: 2vh 3vh 3vh 3vh;
+      border: 1px solid #ddd;
+      border-radius: 1vh;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    .collect-operate-container .right .settings-section label {
+      font-size: 14px;
+    }
+
+    .collect-operate-container .right .settings-section h5 {
+      margin: 0 0 1.5vh 0;
+      font-size: 16px;
+      color: #333;
+    }
+
+    .collect-operate-container .right .settings-section .novel-selector {
+      width: 8vw;
+      height: 3vh;
+      font-size: 12px;
+    }
+
+    .collect-operate-container .right .settings-section input[type="number"] {
+      width: 7vw;
+      padding: 0.6vh;
+      font-size: 14px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      box-sizing: border-box;
+    }
+
+    .collect-operate-container .right .settings-section .go-to-chapter {
+      margin-left: 0.3vw;
+      padding: 0.6vh 1vh;
+      font-size: 14px;
+      color: white;
+      background-color: #4caf50;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+
+    .collect-operate-container .right .settings-section .go-to-chapter:hover {
+      background-color: #45a049;
+      cursor: pointer;
+    }
+
+    /* 弹窗样式 */
+    .pop {
+      position: fixed;
+      top: 1%;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 13px;
+      min-width: 20vw;
+      height: 7vh;
+      border-radius: 5px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    @keyframes fadeout {
+      0% {
+        opacity: 1;
+      }
+
+      100% {
+        opacity: 0;
+      }
+    }
+
+    @keyframes slidein {
+      0% {
+        transform: translate(-50%, -50%);
+      }
+
+      100% {
+        transform: translate(-50%, 50%);
+      }
+    }
+
+    /* 小说播放 */
+    .marquee {
+      width: 100%;
+      overflow: hidden;
+      white-space: nowrap;
+      position: absolute;
+      background-color: #fff;
+      bottom: 0;
+      height: 3vh;
+      line-height: 3vh;
+      font-size: 13px;
+      opacity: 0;
+    }
+
+    .novel-content {
+      width: 100%;
+      /* 内容宽度设置为100%，以确保覆盖整个容器 */
+      animation: scrollText 100s linear 1;
+      animation-play-state: paused;
+      /* 应用动画 */
+    }
+
+    @keyframes scrollText {
+      0% {
+        transform: translateX(100%);
+        /* 初始位置在容器外部右侧 */
+      }
+
+      100% {
+        transform: translateX(-100%);
+        /* 结束时位置在容器外部左侧 */
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="main-container">
+    <!-- 时钟 -->
+    <div id="clock"></div>
+    <!-- 搜索框 -->
+    <div class="search-container">
+      <input type="text" placeholder="输入搜索内容" />
+      <button onclick="searchBaidu(event)">搜索</button>
+    </div>
+
+    <!-- 收藏框 -->
+    <div class="collect-container">
+      <div class="collect-item">
+        <div class="collect-icon collect-add_icon"></div>
+        <span class="collect-name">添加</span>
+      </div>
+    </div>
+    <!-- 右键菜单 -->
+    <div class="context-menu">
+      <ul>
+        <li>删除书签</li>
+      </ul>
+    </div>
+    <!-- 收藏操作页面 -->
+    <div class="modal">
+      <!-- 模态框 -->
+      <div class="collect-operate-container">
+        <div class="left">
+          <div class="select-item">
+            <img class="icon" src="./static//icon/管理书签.png" />
+            <span class="title">自定义书签</span>
+          </div>
+          <div class="select-item">
+            <img class="icon" src="./static//icon/本地壁纸.png" />
+            <span class="title">切换壁纸</span>
+          </div>
+          <div class="select-item">
+            <img class="icon" src="./static//icon/设置.png" />
+            <span class="title">小说设置</span>
+          </div>
+        </div>
+        <div class="right">
+          <!-- 自定义标签 -->
+          <div class="right—item">
+            <div class="title">自定义标签</div>
+            <div class="form-container">
+              <div class="form-item">
+                <label for="website">网址：</label>
+                <input type="url" placeholder="https://" />
+              </div>
+              <div class="form-item">
+                <label for="name">名称：</label>
+                <input type="text" />
+              </div>
+              <div class="form-item">
+                <label for="upload">图标：</label>
+                <input type="file" accept="image/*" />
+              </div>
+              <div class="form-item">
+                <button class="add_collect">提交</button>
+              </div>
+            </div>
+          </div>
+          <!-- 切换图片 -->
+          <div class="right—item">
+            <div class="title">本地壁纸</div>
+            <div class="img-container"></div>
+          </div>
+          <!-- 小说设置 -->
+          <div class="right—item">
+            <div class="title">小说设置</div>
+            <div class="settings-section">
+              <h5>选择小说</h5>
+              <select class="novel-selector">
+              </select>
+            </div>
+            <div class="settings-section">
+              <h5>滚动速度</h5>
+              <label>
+                <input type="radio" name="speed" value="slow" checked />
+                慢速
+              </label>
+              <label>
+                <input type="radio" name="speed" value="medium" />
+                中速
+              </label>
+              <label>
+                <input type="radio" name="speed" value="fast" />
+                快速
+              </label>
+            </div>
+            <div class="settings-section">
+              <h5>指定阅读章节</h5>
+              <input type="number" placeholder="输入章节号" />
+              <button class="go-to-chapter">前往</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 滚动小说区 -->
+    <div class="marquee">
+      <p class="novel-content">
+        123123123123123
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // --------获取dom元素区-------
+    const body = document.querySelector("body"); //获取body元素
+    const mainContainer = document.querySelector(".main-container");
+    const collectContainer = document.querySelector(".collect-container"); // 获取搜藏框所在区域
+    const addCollectItem = document.querySelector(".collect-add_icon"); // 获取添加收藏按钮元素
+    const contextMenu = document.querySelector(".context-menu"); //获取右键菜单
+    const model = document.querySelector(".modal"); //获取模态框
+    const formItem = document.querySelectorAll(".form-item"); //获取所有的表单项
+    const addCollectButton = document.querySelector(".add_collect"); //获取添加收藏按钮
+    const novelSelector = document.querySelector(".novel-selector"); //获取选择书籍Dom
+    // ---------------------
+
+    // ----------公共函数封装 --------
+    function ToBase64(file) {
+      return new Promise((resolve, reject) => {
+        let reader = new FileReader();
+        reader.onload = function (event) {
+          // 提取Base64编码部分（从逗号之后开始）
+          let base64Data = event.target.result.split(",")[1];
+          resolve(base64Data); // 返回纯Base64编码的数据
+        };
+        reader.onerror = function (error) {
+          reject(error); // 如果有错误，拒绝Promise
+        };
+        reader.readAsDataURL(file); // 读取文件内容为Data URL
+      });
+    }
+    function setStorage(name, content) {
+      content = JSON.stringify(content);
+      return localStorage.setItem(name, content);
+    }
+    function getStorage(name) {
+      return JSON.parse(localStorage.getItem(name));
+    }
+    function pop(message, level = "normal") {
+      const pop = document.createElement("div");
+      pop.className = `pop ${level}`;
+      pop.innerText = message;
+      switch (level) {
+        case "success":
+          pop.style.backgroundColor = "#409EFF";
+          pop.style.color = "#fff";
+          break;
+        case "warning":
+          pop.style.backgroundColor = "#E6A23C";
+          pop.style.color = "#fff";
+          break;
+        case "error":
+          pop.style.backgroundColor = "#F56C6C";
+          pop.style.color = "#fff";
+          break;
+        default:
+          pop.style.backgroundColor = "rgba(197, 197, 200, 0.5)";
+          pop.style.color = "#fff";
+          break;
+      }
+      body.appendChild(pop);
+      // 添加渐变消失动画和下落动画
+      pop.style.animation =
+        "fadeout 2s ease 2s forwards, slidein 3s ease  forwards";
+      // 在动画结束后移除元素
+      pop.addEventListener("animationend", () => {
+        pop.remove();
+      });
+    }
+
+    // -----------------------------
+
+    // ------------- api请求 -----------
+
+    async function getXsNameLists() {
+      // 获取小说名列表
+      try {
+        const response = await fetch("http://127.0.0.1:5600/getBookname");
+        const data = await response.json();
+        if (data.code === 200) return data.result;
+      } catch (error) {
+        alert("服务错误")
+      }
+    }
+
+    async function getChapterContent(bookname) {
+      try {
+        const response = await fetch(`http://127.0.0.1:5600/getChapters/${bookname}`);
+        const data = await response.json();
+        if (data.code === 200) return data.result;
+        return data.result;
+      } catch (error) {
+        alert("服务错误")
+      }
+    }
+    // ---------------------------------------
+
+    // --------时钟逻辑-------
+    function updateClock() {
+      const now = new Date();
+      const hours = now.getHours().toString().padStart(2, "0");
+      const minutes = now.getMinutes().toString().padStart(2, "0");
+      const seconds = now.getSeconds().toString().padStart(2, "0");
+      const timeString = `${hours}:${minutes}:${seconds}`;
+
+      document.getElementById("clock").textContent = timeString;
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+    // ----------------------------
+
+    // --------- 显示壁纸 ----------
+    function showBackgroundImg() {
+      const imgUrl = getStorage("backgroundImg") || "./static/bg/0.jpg";
+      body.style.backgroundImage = `url(${imgUrl})`;
+    }
+    showBackgroundImg();
+    // ---------------------------
+
+    //-------收藏逻辑-------
+
+    // 显示书签
+    function showCollect() {
+      // 清空页面已有的收藏元素 但不包括最后一个
+      const collectContainer = document.querySelector(".collect-container");
+      const collectItems = Array.from(collectContainer.children);
+      collectItems.forEach((item) => {
+        if (item != collectContainer.lastElementChild) {
+          collectContainer.removeChild(item);
+        }
+      });
+
+      // 重新获取
+      const collectList = getStorage("collectList") || [];
+      collectList.forEach((item) => {
+        const newCollectItem = document.createElement("div");
+        const newCollectIcon = document.createElement("div");
+        const newCollectText = document.createElement("span");
+        newCollectItem.classList.add("collect-item");
+        newCollectIcon.classList.add("collect-icon");
+        newCollectIcon.setAttribute("data-src", item.website);
+        newCollectText.classList.add("collect-name");
+        newCollectIcon.style.background = `url("data:image/png;base64,${item.imgData}")`;
+        newCollectIcon.style.backgroundRepeat = "no-repeat";
+        newCollectIcon.style.backgroundSize = "100%";
+        newCollectIcon.style.backgroundPosition = "center";
+        newCollectText.textContent = item.name;
+        collectContainer.insertBefore(
+          newCollectItem,
+          collectContainer.firstChild
+        );
+        newCollectItem.appendChild(newCollectIcon);
+        newCollectItem.appendChild(newCollectText);
+      });
+    }
+    showCollect(); // 初始化显示收藏夹
+
+    addCollectItem.addEventListener("click", () => {
+      model.style.display = "block";
+    });
+
+    addCollectButton.addEventListener("click", async () => {
+      const website = formItem[0].querySelector("input").value;
+      const name = formItem[1].querySelector("input").value;
+      const files = formItem[2].querySelector("input").files[0];
+      // 校验
+      if (website) {
+        let isValid = formItem[0].querySelector("input").validity.valid;
+        if (!isValid) {
+          pop("请输入一个有效的url", "warning");
+          return;
+        }
+      } else {
+        pop("url不能为空", "warning");
+        return;
+      }
+      if (!name) {
+        pop("名称不能为空", "warning");
+        return;
+      }
+      let imgData = "";
+      if (files) {
+        imgData = await ToBase64(files);
+      }
+
+      // 获取本地列表
+      const collectList = getStorage("collectList") || [];
+      if (collectList.length > 16) {
+        pop("收藏夹已满", "warning");
+        return;
+      }
+      const lists = {
+        website,
+        name,
+        imgData,
+      };
+      collectList.push(lists);
+      setStorage("collectList", collectList); //存储至本地
+      pop("添加成功", "success");
+      model.style.display = "none";
+      showCollect(); // 重新显示收藏夹
+    });
+
+    // ----------------------
+
+    // 模态框逻辑
+    model.addEventListener("click", (event) => {
+      if (event.target === model) {
+        // 如果是模态框本身被点击，则隐藏模态框
+        model.style.display = "none";
+      }
+    });
+
+    const rightItem = model.querySelectorAll(".right—item");
+    const selectItem = model.querySelectorAll(".select-item");
+    selectItem.forEach((item, index) => {
+      // 默认选中
+      index == 0 && item.classList.toggle("activited");
+      if (index == 0) rightItem[0].style.display = "block";
+
+      item.addEventListener("click", () => {
+        selectItem.forEach((item) => {
+          item.classList.remove("activited");
+        });
+        rightItem.forEach((item) => {
+          item.style.display = "none";
+        });
+        item.classList.toggle("activited");
+        rightItem[index].style.display = "block";
+        if (index == 1) {
+          const imgContainer = rightItem[1].querySelector(".img-container");
+          for (let i = 0; i < 26; i++) {
+            // 创建img节点
+            const img = document.createElement("img");
+            img.className = "img";
+            img.src = `./static/bg/${i}.jpg`;
+            imgContainer.appendChild(img);
+          }
+          // 壁纸点击事件
+          clickImg();
+        } else if ((index = 2)) {
+          const novelData = getStorage("novelData")
+          getXsNameLists().then(res => {
+            res.forEach((item, index) => {
+              const newOption = document.createElement('option')
+              newOption.value = index;
+              newOption.text = item;
+              novelSelector.appendChild(newOption)
+            })
+            novelSelector.value = novelData.bookName;
+
+          })
+          const radioLists = document.querySelectorAll(".settings-section")[1].querySelectorAll('input[name="speed"]')
+          radioLists.forEach(item => {
+            if (novelData.speed == item.value) {
+              item.checked = true
+            }
+          })
+        }
+      });
+    });
+    // ----------------------
+
+    // ---------- 切换壁纸 --------
+    function clickImg() {
+      const imgList = model.querySelectorAll(".img-container img");
+      imgList.forEach((item) => {
+        item.addEventListener("click", () => {
+          document.body.style.backgroundImage = `url(${item.src})`;
+          setStorage("backgroundImg", item.src); //存储至本地
+        });
+      });
+    }
+
+    //  -------------------------------
+
+    // --------- 书签点击事件 --------
+    const collectItemList = document.querySelectorAll(
+      ".collect-icon:not(.collect-add_icon)"
+    );
+
+    function deleteCollect(index) {
+      // 删除书签函数
+      let collectList = getStorage("collectList") || [];
+      collectList.splice(index, 1);
+      setStorage("collectList", collectList);
+      pop("删除成功", "success");
+      showCollect();
+    }
+
+    collectItemList.forEach((item, index) => {
+      item.addEventListener("click", () => {
+        // 执行书签点击逻辑
+        // ...
+        window.location.href = item.getAttribute("data-src");
+      });
+      item.addEventListener("contextmenu", (event) => {
+        // 执行书签右击逻辑
+        event.preventDefault(); // 阻止默认右键菜单弹出
+        // 设置右键菜单的位置
+        contextMenu.style.left = event.clientX + "px";
+        contextMenu.style.top = event.clientY + "px";
+        // 显示右键菜单
+        contextMenu.style.display = "block";
+        // 保存当前右键点击的元素
+        const clickedElement = item;
+        //  监听右键的点击事件
+        const rightItemList = contextMenu.querySelectorAll("li");
+        rightItemList.forEach((rightItem, rightIndex) => {
+          rightItem.addEventListener("click", () => {
+            if (rightIndex === 0) {
+              confirm("确定要删除该收藏吗？") && deleteCollect(index);
+            }
+            contextMenu.style.display = "none";
+          });
+        });
+
+        // 点击其他地方隐藏右键菜单
+        document.addEventListener("click", function (e) {
+          if (!contextMenu.contains(e.target)) {
+            contextMenu.style.display = "none";
+          }
+        });
+      });
+    });
+
+    // -------------------------------------
+
+    // ---------- 搜索按钮点击事件---------
+    function searchBaidu(e) {
+      e && e.preventDefault(); // 阻止按钮的默认行为（如果有的话）
+      const searchTerm = document.querySelector("input").value;
+      window.location.href =
+        "https://www.baidu.com/s?wd=" + encodeURIComponent(searchTerm);
+      document.querySelector("input").value = ""
+    }
+    // 监听回车
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        searchBaidu();
+      }
+    });
+    //  ------------------------------
+
+    // ---------- 小说功能 --------------
+
+    const novelData = getStorage("novelData")
+    //判断是否为第一次打开
+    if (!novelData) {
+      setStorage("novelData", {
+        bookName: 0,
+        chapterIndex: 0,
+        speed: "slow",
+      })
+    }
+
+
+    // 获取小说数据
+    const marquee = document.querySelector(".marquee")
+    const novelContent = document.querySelector(".novel-content")
+
+    async function getbookData() {
+      const res = await getXsNameLists()
+      const ress = await getChapterContent(res[novelData.bookName])
+      novelContent.innerText = ress[novelData.chapterIndex]
+
+    }
+    getbookData()
+
+    // 绑定按键
+    let animationPaused = false
+    document.addEventListener("keydown", (e) => {
+      e.preventDefault()
+      // 控制小说滚动及显隐
+      if (e.ctrlKey && e.altKey && e.key === 'w') {
+        // 切换动画的播放状态
+        if (!animationPaused) {
+          novelContent.style.animationPlayState = "paused"; // 暂停动画
+          marquee.style.opacity = "0"; // 隐藏内容
+          animationPaused = true;
+        } else {
+          novelContent.style.animationPlayState = "running"; // 恢复动画
+          marquee.style.opacity = "1"; // 显示内容
+          animationPaused = false;
+        }
+      }
+    });
+
+
+
+    // 切换小说
+    novelSelector.addEventListener("change", () => {
+      const isOk = confirm("切换小说后，浏览的数据将清空，是否继续切换？");
+      if (isOk) {
+        const data = {
+          bookName: novelSelector.value,
+          chapterIndex: 0,
+          speed: "slow",
+        };
+        // 存到本地
+        setStorage("novelData", data);
+      }
+    });
+
+    // 切换速度
+    const radios = document.querySelectorAll(".settings-section")[1].querySelectorAll('input[name="speed"]');
+    radios.forEach(item => {
+      item.addEventListener("change", () => {
+        const novelData = getStorage("novelData")
+        Object.assign(novelData, { speed: item.value })
+        setStorage("novelData", novelData)
+      })
+    });
+
+    // 指定阅读章节
+    const goToChapterButton = document.querySelectorAll(".settings-section")[2].querySelector(".go-to-chapter")
+    const chapterInput = document.querySelectorAll(".settings-section")[2].querySelector("input")
+    // 最小章节限制
+    chapterInput.addEventListener("input", (event) => {
+      if (chapterInput.value < 1) {
+        chapterInput.value = 1
+      }
+    })
+    goToChapterButton.addEventListener("click", () => {
+      const novelData = getStorage("novelData")
+      Object.assign(novelData, { chapterIndex: chapterInput.value - 1 })
+      setStorage("novelData", novelData)
+    })
+
+    // ---------------------------------
+
+    // ----------页面元素淡出效果-----------
+    let mouseIsMoving = false;
+    let fadeOutTimeout;
+    // 监听鼠标移动事件
+    document.addEventListener("mousemove", () => {
+      mouseIsMoving = true;
+      // // 如果已经设置了淡出超时，则清除它
+      clearTimeout(fadeOutTimeout);
+      // // 移除淡出类，使元素恢复不透明度
+      if (mainContainer.classList.contains("fade-out")) {
+        mainContainer.classList.remove("fade-out");
+      }
+    });
+
+    // 当鼠标停止移动时开始淡出计时
+    document.addEventListener("mouseleave", () => {
+      mouseIsMoving = false;
+      fadeOutTimeout = setTimeout(function () {
+        if (!mouseIsMoving) {
+          // 添加淡出类，使元素逐渐淡出
+          mainContainer.classList.add("fade-out");
+        }
+      }, 1000); // 设置淡出开始的延迟，这里是1秒后
+    });
+    // ------------------------------------
+  </script>
+</body>
+
+</html>
