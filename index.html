@@ -498,6 +498,7 @@
                 <input type="radio" name="speed" value="fast" />
                 快速
               </label>
+
             </div>
             <div class="settings-section">
               <h5>指定阅读章节</h5>
@@ -512,7 +513,7 @@
     <!-- 滚动小说区 -->
     <div class="marquee">
       <p class="novel-content">
-        123123123123123
+
       </p>
     </div>
   </div>
@@ -583,6 +584,9 @@
         pop.remove();
       });
     }
+
+
+
 
     // -----------------------------
 
@@ -869,8 +873,6 @@
         speed: "slow",
       })
     }
-
-
     // 获取小说数据
     const marquee = document.querySelector(".marquee")
     const novelContent = document.querySelector(".novel-content")
@@ -878,7 +880,11 @@
     async function getbookData() {
       const res = await getXsNameLists()
       const ress = await getChapterContent(res[novelData.bookName])
-      novelContent.innerText = ress[novelData.chapterIndex]
+      if (ress[novelData.chapterIndex]) {
+        novelContent.innerText = ress[novelData.chapterIndex]
+      } else {
+        pop("已经是最后一章了", "warning")
+      }
 
     }
     getbookData()
@@ -886,9 +892,8 @@
     // 绑定按键
     let animationPaused = false
     document.addEventListener("keydown", (e) => {
-      e.preventDefault()
       // 控制小说滚动及显隐
-      if (e.ctrlKey && e.altKey && e.key === 'w') {
+      if (e.ctrlKey && e.altKey && e.key === 'q') {
         // 切换动画的播放状态
         if (!animationPaused) {
           novelContent.style.animationPlayState = "paused"; // 暂停动画
@@ -899,6 +904,22 @@
           marquee.style.opacity = "1"; // 显示内容
           animationPaused = false;
         }
+      }
+
+      // 按键切换下一章
+      if (marquee.style.opacity == "1" && e.ctrlKey && e.key === "ArrowDown") {
+        novelData.chapterIndex++;
+        getbookData();
+      }
+      //  按键切换上一章
+      if (marquee.style.opacity == "1" && e.ctrlKey && e.key === "ArrowUp") {
+        if (novelData.chapterIndex > 0) {
+          novelData.chapterIndex--
+          getbookData();
+        } else {
+          pop("已经是第一章了", "warning")
+        }
+
       }
     });
 
@@ -915,6 +936,7 @@
         };
         // 存到本地
         setStorage("novelData", data);
+        getbookData();
       }
     });
 
@@ -925,6 +947,19 @@
         const novelData = getStorage("novelData")
         Object.assign(novelData, { speed: item.value })
         setStorage("novelData", novelData)
+        console.log(novelData.speed);
+        switch (novelData.speed) {
+          case "slow":
+            novelContent.style.animationDuration = "100s";
+            break;
+          case "medium":
+            novelContent.style.animationDuration = "50s";
+            break;
+          case "fast":
+            novelContent.style.animationDuration = "20s";
+          default:
+            break;
+        }
       })
     });
 
@@ -941,6 +976,7 @@
       const novelData = getStorage("novelData")
       Object.assign(novelData, { chapterIndex: chapterInput.value - 1 })
       setStorage("novelData", novelData)
+      getbookData();
     })
 
     // ---------------------------------
