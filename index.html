@@ -481,8 +481,7 @@
             <div class="title">小说设置</div>
             <div class="settings-section">
               <h5>选择小说</h5>
-              <select class="novel-selector">
-              </select>
+              <select class="novel-selector"></select>
             </div>
             <div class="settings-section">
               <h5>滚动速度</h5>
@@ -498,7 +497,6 @@
                 <input type="radio" name="speed" value="fast" />
                 快速
               </label>
-
             </div>
             <div class="settings-section">
               <h5>指定阅读章节</h5>
@@ -512,9 +510,7 @@
 
     <!-- 滚动小说区 -->
     <div class="marquee">
-      <p class="novel-content">
-
-      </p>
+      <p class="novel-content"></p>
     </div>
   </div>
 
@@ -585,9 +581,6 @@
       });
     }
 
-
-
-
     // -----------------------------
 
     // ------------- api请求 -----------
@@ -599,18 +592,19 @@
         const data = await response.json();
         if (data.code === 200) return data.result;
       } catch (error) {
-        alert("服务错误")
+        alert("服务错误");
       }
     }
 
     async function getChapterContent(bookname) {
       try {
-        const response = await fetch(`http://127.0.0.1:5600/getChapters/${bookname}`);
+        const response = await fetch(
+          `http://127.0.0.1:5600/getChapters/${bookname}`
+        );
         const data = await response.json();
         if (data.code === 200) return data.result;
-        return data.result;
       } catch (error) {
-        alert("服务错误")
+        alert("服务错误");
       }
     }
     // ---------------------------------------
@@ -638,6 +632,34 @@
     // ---------------------------
 
     //-------收藏逻辑-------
+    let collectItemList = document.querySelectorAll(
+      ".collect-icon:not(.collect-add_icon)"
+    );
+    // 右击事件
+    function contextmenuEvent(event, index) {
+      event.preventDefault(); // 阻止默认右键菜单弹出
+      // 设置右键菜单的位置
+      contextMenu.style.left = event.clientX + "px";
+      contextMenu.style.top = event.clientY + "px";
+      // 显示右键菜单
+      contextMenu.style.display = "block";
+      //  监听右键的点击事件
+      const rightItemList = contextMenu.querySelectorAll("li");
+      rightItemList[0].onclick = () => {
+        if (confirm("确定要删除该收藏吗？")) {
+          deleteCollect(index); // 使用正确的 index
+          contextMenu.style.display = "none"
+        }
+      }
+    }
+    function deleteCollect(index) {
+      // 删除书签函数
+      let collectList = getStorage("collectList") || [];
+      collectList.splice(index, 1);
+      setStorage("collectList", collectList);
+      pop("删除成功", "success");
+      showCollect();
+    }
 
     // 显示书签
     function showCollect() {
@@ -652,7 +674,7 @@
 
       // 重新获取
       const collectList = getStorage("collectList") || [];
-      collectList.forEach((item) => {
+      collectList.forEach((item, index) => {
         const newCollectItem = document.createElement("div");
         const newCollectIcon = document.createElement("div");
         const newCollectText = document.createElement("span");
@@ -667,24 +689,33 @@
         newCollectText.textContent = item.name;
         collectContainer.insertBefore(
           newCollectItem,
-          collectContainer.firstChild
+          collectContainer.lastElementChild
         );
         newCollectItem.appendChild(newCollectIcon);
         newCollectItem.appendChild(newCollectText);
+        newCollectIcon.onclick = () => {
+          window.location.href = item.website;
+        };
+        newCollectIcon.addEventListener("contextmenu", (event) => contextmenuEvent(event, index));
       });
     }
     showCollect(); // 初始化显示收藏夹
-
+    // 点击其他地方取消右键菜单
+    document.addEventListener("click", (e) => {
+      if (!contextMenu.contains(e.target)) {
+        contextMenu.style.display = "none";
+      }
+    });
     addCollectItem.addEventListener("click", () => {
       model.style.display = "block";
     });
 
     addCollectButton.addEventListener("click", async () => {
-      const website = formItem[0].querySelector("input").value;
-      const name = formItem[1].querySelector("input").value;
-      const files = formItem[2].querySelector("input").files[0];
+      const website = formItem[0].querySelector("input");
+      const name = formItem[1].querySelector("input");
+      const files = formItem[2].querySelector("input");
       // 校验
-      if (website) {
+      if (website.value) {
         let isValid = formItem[0].querySelector("input").validity.valid;
         if (!isValid) {
           pop("请输入一个有效的url", "warning");
@@ -694,13 +725,13 @@
         pop("url不能为空", "warning");
         return;
       }
-      if (!name) {
+      if (!name.value) {
         pop("名称不能为空", "warning");
         return;
       }
       let imgData = "";
-      if (files) {
-        imgData = await ToBase64(files);
+      if (files.files[0]) {
+        imgData = await ToBase64(files.files[0]);
       }
 
       // 获取本地列表
@@ -710,13 +741,16 @@
         return;
       }
       const lists = {
-        website,
-        name,
+        website: website.value,
+        name: name.value,
         imgData,
       };
       collectList.push(lists);
       setStorage("collectList", collectList); //存储至本地
       pop("添加成功", "success");
+      website.value = "";
+      name.value = "";
+      files.value = "";
       model.style.display = "none";
       showCollect(); // 重新显示收藏夹
     });
@@ -739,6 +773,7 @@
       if (index == 0) rightItem[0].style.display = "block";
 
       item.addEventListener("click", () => {
+
         selectItem.forEach((item) => {
           item.classList.remove("activited");
         });
@@ -758,28 +793,39 @@
           }
           // 壁纸点击事件
           clickImg();
-        } else if ((index = 2)) {
-          const novelData = getStorage("novelData")
-          getXsNameLists().then(res => {
+        } else if ((index == 2)) {
+          // 服务开启提示
+          const isOpenServe = confirm("开启该功能之前，请确保开启服务~")
+          if (!isOpenServe) {
+            pop("服务未开启，无法使用该服务", "warning")
+            return
+          }
+          const novelData = getStorage("novelData");
+          getXsNameLists().then((res) => {
             res.forEach((item, index) => {
-              const newOption = document.createElement('option')
+              const newOption = document.createElement("option");
               newOption.value = index;
               newOption.text = item;
-              novelSelector.appendChild(newOption)
-            })
+              novelSelector.appendChild(newOption);
+            });
             novelSelector.value = novelData.bookName;
-
-          })
-          const radioLists = document.querySelectorAll(".settings-section")[1].querySelectorAll('input[name="speed"]')
-          radioLists.forEach(item => {
+          });
+          const radioLists = document
+            .querySelectorAll(".settings-section")[1]
+            .querySelectorAll('input[name="speed"]');
+          radioLists.forEach((item) => {
             if (novelData.speed == item.value) {
-              item.checked = true
+              item.checked = true;
             }
-          })
+          });
+
         }
       });
     });
     // ----------------------
+
+
+
 
     // ---------- 切换壁纸 --------
     function clickImg() {
@@ -794,65 +840,13 @@
 
     //  -------------------------------
 
-    // --------- 书签点击事件 --------
-    const collectItemList = document.querySelectorAll(
-      ".collect-icon:not(.collect-add_icon)"
-    );
-
-    function deleteCollect(index) {
-      // 删除书签函数
-      let collectList = getStorage("collectList") || [];
-      collectList.splice(index, 1);
-      setStorage("collectList", collectList);
-      pop("删除成功", "success");
-      showCollect();
-    }
-
-    collectItemList.forEach((item, index) => {
-      item.addEventListener("click", () => {
-        // 执行书签点击逻辑
-        // ...
-        window.location.href = item.getAttribute("data-src");
-      });
-      item.addEventListener("contextmenu", (event) => {
-        // 执行书签右击逻辑
-        event.preventDefault(); // 阻止默认右键菜单弹出
-        // 设置右键菜单的位置
-        contextMenu.style.left = event.clientX + "px";
-        contextMenu.style.top = event.clientY + "px";
-        // 显示右键菜单
-        contextMenu.style.display = "block";
-        // 保存当前右键点击的元素
-        const clickedElement = item;
-        //  监听右键的点击事件
-        const rightItemList = contextMenu.querySelectorAll("li");
-        rightItemList.forEach((rightItem, rightIndex) => {
-          rightItem.addEventListener("click", () => {
-            if (rightIndex === 0) {
-              confirm("确定要删除该收藏吗？") && deleteCollect(index);
-            }
-            contextMenu.style.display = "none";
-          });
-        });
-
-        // 点击其他地方隐藏右键菜单
-        document.addEventListener("click", function (e) {
-          if (!contextMenu.contains(e.target)) {
-            contextMenu.style.display = "none";
-          }
-        });
-      });
-    });
-
-    // -------------------------------------
-
     // ---------- 搜索按钮点击事件---------
     function searchBaidu(e) {
       e && e.preventDefault(); // 阻止按钮的默认行为（如果有的话）
       const searchTerm = document.querySelector("input").value;
       window.location.href =
         "https://www.baidu.com/s?wd=" + encodeURIComponent(searchTerm);
-      document.querySelector("input").value = ""
+      document.querySelector("input").value = "";
     }
     // 监听回车
     document.addEventListener("keydown", (event) => {
@@ -864,36 +858,34 @@
 
     // ---------- 小说功能 --------------
 
-    const novelData = getStorage("novelData")
+    const novelData = getStorage("novelData");
     //判断是否为第一次打开
     if (!novelData) {
       setStorage("novelData", {
         bookName: 0,
         chapterIndex: 0,
         speed: "slow",
-      })
+      });
     }
     // 获取小说数据
-    const marquee = document.querySelector(".marquee")
-    const novelContent = document.querySelector(".novel-content")
-
+    const marquee = document.querySelector(".marquee");
+    const novelContent = document.querySelector(".novel-content");
     async function getbookData() {
-      const res = await getXsNameLists()
-      const ress = await getChapterContent(res[novelData.bookName])
+      const res = await getXsNameLists();
+      const ress = await getChapterContent(res[novelData.bookName]);
       if (ress[novelData.chapterIndex]) {
-        novelContent.innerText = ress[novelData.chapterIndex]
+        novelContent.innerText = ress[novelData.chapterIndex];
       } else {
-        pop("已经是最后一章了", "warning")
+        pop("已经是最后一章了", "warning");
       }
-
     }
-    getbookData()
+    getbookData();
 
     // 绑定按键
-    let animationPaused = false
+    let animationPaused = false;
     document.addEventListener("keydown", (e) => {
       // 控制小说滚动及显隐
-      if (e.ctrlKey && e.altKey && e.key === 'q') {
+      if (e.ctrlKey && e.altKey && e.key === "q") {
         // 切换动画的播放状态
         if (!animationPaused) {
           novelContent.style.animationPlayState = "paused"; // 暂停动画
@@ -907,23 +899,28 @@
       }
 
       // 按键切换下一章
-      if (marquee.style.opacity == "1" && e.ctrlKey && e.key === "ArrowDown") {
+      if (
+        marquee.style.opacity == "1" &&
+        e.ctrlKey &&
+        e.key === "ArrowDown"
+      ) {
         novelData.chapterIndex++;
+        Object.assign(novelData, { chapterIndex: novelData.chapterIndex });
+        setStorage("novelData", novelData);
         getbookData();
       }
       //  按键切换上一章
       if (marquee.style.opacity == "1" && e.ctrlKey && e.key === "ArrowUp") {
         if (novelData.chapterIndex > 0) {
-          novelData.chapterIndex--
+          novelData.chapterIndex--;
+          Object.assign(novelData, { chapterIndex: novelData.chapterIndex });
+          setStorage("novelData", novelData);
           getbookData();
         } else {
-          pop("已经是第一章了", "warning")
+          pop("已经是第一章了", "warning");
         }
-
       }
     });
-
-
 
     // 切换小说
     novelSelector.addEventListener("change", () => {
@@ -941,12 +938,14 @@
     });
 
     // 切换速度
-    const radios = document.querySelectorAll(".settings-section")[1].querySelectorAll('input[name="speed"]');
-    radios.forEach(item => {
+    const radios = document
+      .querySelectorAll(".settings-section")[1]
+      .querySelectorAll('input[name="speed"]');
+    radios.forEach((item) => {
       item.addEventListener("change", () => {
-        const novelData = getStorage("novelData")
-        Object.assign(novelData, { speed: item.value })
-        setStorage("novelData", novelData)
+        const novelData = getStorage("novelData");
+        Object.assign(novelData, { speed: item.value });
+        setStorage("novelData", novelData);
         console.log(novelData.speed);
         switch (novelData.speed) {
           case "slow":
@@ -960,24 +959,28 @@
           default:
             break;
         }
-      })
+      });
     });
 
     // 指定阅读章节
-    const goToChapterButton = document.querySelectorAll(".settings-section")[2].querySelector(".go-to-chapter")
-    const chapterInput = document.querySelectorAll(".settings-section")[2].querySelector("input")
+    const goToChapterButton = document
+      .querySelectorAll(".settings-section")[2]
+      .querySelector(".go-to-chapter");
+    const chapterInput = document
+      .querySelectorAll(".settings-section")[2]
+      .querySelector("input");
     // 最小章节限制
     chapterInput.addEventListener("input", (event) => {
       if (chapterInput.value < 1) {
-        chapterInput.value = 1
+        chapterInput.value = 1;
       }
-    })
+    });
     goToChapterButton.addEventListener("click", () => {
-      const novelData = getStorage("novelData")
-      Object.assign(novelData, { chapterIndex: chapterInput.value - 1 })
-      setStorage("novelData", novelData)
+      const novelData = getStorage("novelData");
+      Object.assign(novelData, { chapterIndex: chapterInput.value - 1 });
+      setStorage("novelData", novelData);
       getbookData();
-    })
+    });
 
     // ---------------------------------
 
